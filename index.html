@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VicomFusion Burst Rate Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .explanation {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
+        .breathing {
+            animation: breathing 3s ease-in-out infinite;
+        }
+        @keyframes breathing {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>VicomFusion Burst Rate Generator</h2>
+    <div class="input-group">
+        <label for="rateLimit">Rate Limit (e.g., 8M/8M):</label>
+        <input type="text" id="rateLimit" placeholder="Enter rate limit">
+    </div>
+    <div class="input-group">
+        <label for="burstLimit">Burst Limit (e.g., 15M/15M):</label>
+        <input type="text" id="burstLimit" placeholder="Enter burst limit">
+    </div>
+    <div class="input-group">
+        <label for="burstThreshold">Burst Threshold (e.g., 8M/8M):</label>
+        <input type="text" id="burstThreshold" placeholder="Enter burst threshold">
+    </div>
+    <div class="input-group">
+        <label for="burstTime">Burst Time (e.g., 10/10):</label>
+        <input type="text" id="burstTime" placeholder="Enter burst time">
+    </div>
+    <button onclick="generateConfig()">Generate Config</button>
+    <button onclick="copyConfig()">Copy Config</button>
+
+    <div class="output" id="output">
+        <strong>Generated Config:</strong>
+        <p id="configText"></p>
+    </div>
+
+    <div class="explanation">
+        <h2>Understanding Burst Settings</h2>
+        <p><strong>Rate Limit:</strong> This is the standard rate limit for download and upload.</p>
+        <p><strong>Burst Limit:</strong> This is the maximum rate that can be achieved during the burst period.</p>
+        <p><strong>Burst Threshold:</strong> This is the average rate above which bursting is allowed.</p>
+        <p><strong>Burst Time:</strong> This is the period over which the average rate is calculated to allow bursts.</p>
+
+        <h2>How Burst Works</h2>
+        <p><strong>Initial State:</strong> When the traffic starts, if the average rate of traffic is below the burst threshold, the traffic can burst up to the burst limit.</p>
+        <p><strong>Burst Activation:</strong> The router checks the average data rate over the burst time. If the average rate is below the burst threshold, it allows the traffic to go up to the burst limit.</p>
+        <p><strong>Sustained Usage:</strong> If the traffic maintains a high data rate for long enough, the average rate may exceed the burst threshold. When this happens, the router will reduce the traffic to the standard rate limit.</p>
+        <p><strong>Recalculation:</strong> Once the traffic rate drops below the burst threshold again, the burst can be reactivated.</p>
+
+        <h2>Configuring Burst Settings</h2>
+        <p>To configure burst settings, you need to understand the following:</p>
+        <ul>
+            <li><strong>Rate Limit:</strong> This is your standard bandwidth allocation. For example, <code>8M/8M</code> means 8Mbps for both download and upload.</li>
+            <li><strong>Burst Limit:</strong> This should be higher than the rate limit. For example, if your rate limit is <code>8M/8M</code>, a burst limit could be <code>15M/15M</code>.</li>
+            <li><strong>Burst Threshold:</strong> This is the rate at which bursting is allowed. This should typically be around or just below the rate limit. For example, if your rate limit is <code>8M/8M</code>, a burst threshold could be <code>8M/8M</code> or slightly lower.</li>
+            <li><strong>Burst Time:</strong> This is the duration in seconds over which the average rate is calculated. A common value is <code>10/10</code>.</li>
+        </ul>
+    </div>
+</div>
+
+<footer class="breathing">Powered by: VIcomFusion</footer>
+
+<script>
+    function generateConfig() {
+        let rateLimit = document.getElementById('rateLimit').value;
+        let burstLimit = document.getElementById('burstLimit').value;
+        let burstThreshold = document.getElementById('burstThreshold').value;
+        let burstTime = document.getElementById('burstTime').value;
+
+        // Function to convert rate limit from string (e.g., "8M") to number (e.g., 8)
+        function convertRateLimitToNumber(rate) {
+            return parseFloat(rate.toUpperCase().replace('M', ''));
+        }
+
+        // Extract the numerical values from the inputs
+        let rateLimitValue = convertRateLimitToNumber(rateLimit.split('/')[0]);
+        let burstLimitValue = convertRateLimitToNumber(burstLimit.split('/')[0]);
+        let burstThresholdValue = convertRateLimitToNumber(burstThreshold.split('/')[0]);
+
+        // Auto-correct the values if necessary
+        if (burstLimitValue <= rateLimitValue) {
+            burstLimitValue = rateLimitValue * 1.5;
+            burstLimit = `${burstLimitValue}M/${burstLimitValue}M`;
+        }
+
+        if (burstThresholdValue < rateLimitValue) {
+            burstThresholdValue = rateLimitValue;
+            burstThreshold = `${burstThresholdValue}M/${burstThresholdValue}M`;
+        }
+
+        if (!burstTime || burstTime === "0/0") {
+            burstTime = "10/10";
+        }
+
+        const configString = `${rateLimit} ${burstLimit} ${burstThreshold} ${burstTime}`;
+        document.getElementById('configText').textContent = configString;
+    }
+
+    function copyConfig() {
+        let configText = document.getElementById('configText').textContent;
+        navigator.clipboard.writeText(configText).then(function() {
+            alert('Config copied to clipboard!');
+        }, function(err) {
+            alert('Failed to copy config: ', err);
+        });
+    }
+</script>
+
+</body>
+</html>
